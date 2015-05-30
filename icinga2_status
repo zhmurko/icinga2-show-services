@@ -1,0 +1,99 @@
+#!/usr/bin/perl 
+#  This script is based on source code of
+## Program : profile_nagios_executiontime.pl
+## Version : 0.2
+## Date    : Dec 15, 2010
+## Author  : William Leibzon - william@leibzon.org
+## Summary : This is a nagios profiler to find which checks take longer
+##           time to execute. Run it directly from unix shell, not as
+##           a plugin. There are no parameters, but you may want to
+##           change the file with path to your nagios status file
+##           if its different than /var/log/nagios/status.dat
+## Licence : GPL - summary below, text at http://www.fsf.org/licenses/gpl.txt
+## Version History: 0.1 - Nov 08 (original release)
+##    		    0.2 - Dec 10 (support for nagios 3.0)
+#
+## Program : icinga2_cli_status.pl
+## Version : 0.3
+## Date    : Mar 22, 2015
+## Author  : Dmitry Zhmurko - dmitry@zhmurko.com
+## Summary : This script parses status.dat file and shows Icinga/Nagios 
+##           services in text console 
+
+use strict;
+
+use Getopt::Long qw(GetOptions);
+use Term::ANSIColor;
+
+# path to 
+my $file="/var/cache/icinga2/status.dat";
+my $show_all;
+
+# read command line parameters
+GetOptions(
+  'all|a' => \$show_all,
+  'file|f=s' => \$file,
+) or die "Usage: $0 [--all] [--file PATH]\n";
+
+my %service_data = ();
+my %host_data = ();
+
+# parse status.dat
+open (FL, $file) or die "Could not open file $file - !";
+my $block="";
+my $bdata;
+while (<FL>) {
+	if ( !$block && /\s*(\w+)\s+{/ ) {
+		$block=$1;
+		$bdata={};
+	}
+	elsif ( $block && /\s*}/) {
+		if (($block eq "host" || $block eq "hoststatus") && defined($bdata->{'host_name'})) {
+			$host_data{$bdata->{'host_name'}}=$bdata;
+		}
+		if (($block eq "service" || $block eq "servicestatus") && defined($bdata->{'host_name'}) && defined($bdata->{'service_description'})) {
+			$service_data{$bdata->{'host_name'}.'_____'.$bdata->{'service_description'}}=$bdata;
+		}
+		$block="";
+	}
+	elsif ( $block && /\s*(\w+)=(.*)/ ) {
+		$bdata->{$1}=$2;
+	}
+}
+close(FL);
+
+# use colors
+my $cy = color('yellow');
+my $cg = color('green');
+my $cr = color('red');
+my $cm = color('magenta');
+my $r  = color('reset');
+my %readable = (0 => $cg."OK".$r, 1 => $cy."WARNING".$r, 2 => $cr."CRIITCAL".$r, 3 => $cm."UNKNOWN".$r );
+
+# parse data
+my %stats=('_all_'=>{tnum=>0,texec=>0});
+my $host;
+my $service;
+my $status = "";
+my $description = "";
+
+# print each
+foreach (sort { $service_data{$b}{check_execution_time} <=> $service_data{$a}{check_execution_time} } keys %service_data) {
+	if ($service_data{$_}{active_checks_enabled}==1) {
+		$host=$service_data{$_}{host_name};
+		$service=$service_data{$_}{service_description};
+		$description=$service_data{$_}{plugin_output};
+		$status= $service_data{$_}{current_state};
+
+		# print either non-OK or all statuses
+		if (($status > 0) || ($show_all) ){
+			print "Host: $host Service: $service Status: ".$readable{$status}.": ".$description."\n";
+		};
+		$stats{_all_}{texec}+=$service_data{$_}{check_execution_time};
+		$stats{_all_}{tnum}++;
+		$stats{$service}={texec=>0,tnum=>0} if !defined($stats{$service});
+		$stats{$service}{texec}+=$service_data{$_}{check_execution_time};
+		$stats{$service}{tnum}++;
+	}
+}
+print "\n";
