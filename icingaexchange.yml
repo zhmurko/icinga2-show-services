@@ -1,4 +1,4 @@
-name: icinga2 services status in text console
+name: Services in text console
 description: "file:///README.md"
 url: "https://github.com/zhmurko/icinga2-show-services"
 tags: Statistic, Status
