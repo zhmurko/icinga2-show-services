@@ -12,8 +12,10 @@ Verify that your file status.dat exists and the script has access to it
     sudo perl icinga2_status --file /var/cache/icinga2/status.dat
 
 Required Perl modules are
+
 * Getopt::Long
 * Term::ANSIColor
 
 Licensing: GPL v2
+
 Support: [Icinga2 www.zhmurko.com](https://www.zhmurko.com/services/icinga2-monitoring/)
