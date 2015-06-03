@@ -1,0 +1,18 @@
+name: icinga2 services status in text console
+description: "file:///README.md"
+url: "https://github.com/zhmurko/icinga2-show-services"
+tags: Statistic, Status
+vendor: Linux
+target: Operating System
+type: Add-ons 
+license: gplv2
+releases: 
+  - 
+    name: 1.0
+    description: "1.0 Release"
+    files: 
+      - 
+        name: icinga2_status.pl
+        url: "file:///icinga2_status"
+        description: "First public release"
+        checksum: 4239e93b81a5be80d1a2df10fa8e995e  
